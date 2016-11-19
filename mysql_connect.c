@@ -1,6 +1,9 @@
 #include <mysl/mysql.h>
 #include <stdio.h>
 
+// https://www.cyberciti.biz/tips/linux-unix-connect-mysql-c-api-program.html
+// http://www.kitebird.com/mysql-book/ch06-3ed.pdf
+
 static char *opt_host_name = NULL; // server host (default = localhost)
 static char *opt_user_name = NULL; // username
 static char *opt_password = NULL; // password
