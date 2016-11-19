@@ -1,6 +1,8 @@
-#include <mysl/mysql.h>
-#include <stdio.h>
+#include <my_global.h> // includes several other header files.
+#include <my_sys.h> // contains various portability macros and definiitions for structures and functions used by the client library
+#include <mysql.h> // defines the primary MySQL related constants and data structures
 
+// specify connection parameters
 static char *opt_host_name = NULL; // server host (default = localhost)
 static char *opt_user_name = NULL; // username
 static char *opt_password = NULL; // password
