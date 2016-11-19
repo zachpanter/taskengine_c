@@ -1,0 +1,10 @@
+{
+
+before_install: 
+
+language: C
+
+services:
+  -mysql
+
+}
