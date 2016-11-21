@@ -1,5 +1,6 @@
-#include <mysl/mysql.h>
-#include <stdio.h>
+#include <my_global.h>
+#include <my_sys.h>
+#include <mysql.h>
 
 // https://www.cyberciti.biz/tips/linux-unix-connect-mysql-c-api-program.html
 // http://www.kitebird.com/mysql-book/ch06-3ed.pdf
@@ -7,7 +8,7 @@
 static char *opt_host_name = NULL; // server host (default = localhost)
 static char *opt_user_name = NULL; // username
 static char *opt_password = NULL; // password
-static unsigned int opt_port_num = 0; // port number
+static unsigned int opt_port_num = 3306; // port number
 static char *opt_socket_name = NULL; //socket name
 static char *opt_db_name = NULL; // database name
 static unsigned int opt_flags = 0; // connection flags
