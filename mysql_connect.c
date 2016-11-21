@@ -6,11 +6,11 @@
 // http://www.kitebird.com/mysql-book/ch06-3ed.pdf
 
 static char *opt_host_name = NULL; // server host (default = localhost)
-static char *opt_user_name = NULL; // username
-static char *opt_password = NULL; // password
+static char *opt_user_name = "teadmin"; // username
+static char *opt_password = "P0wd3r_87"; // password
 static unsigned int opt_port_num = 3306; // port number
 static char *opt_socket_name = NULL; //socket name
-static char *opt_db_name = NULL; // database name
+static char *opt_db_name = "taskengine"; // database name
 static unsigned int opt_flags = 0; // connection flags
 
 static MYSQL *conn; // pointer to connection handler
@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
     }
     
     // disconnect from server
+    fprintf(stdout, "mysql connection worked\n");    
     mysql_close(conn);
     exit(0);
 }
