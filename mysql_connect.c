@@ -1,6 +1,11 @@
 #include <my_global.h>
 #include <my_sys.h>
 #include <mysql.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+
 
 // https://www.cyberciti.biz/tips/linux-unix-connect-mysql-c-api-program.html
 // http://www.kitebird.com/mysql-book/ch06-3ed.pdf
@@ -17,12 +22,16 @@ static MYSQL *conn; // pointer to connection handler
 
 int main(int argc, char *argv[])
 {
+
+    MYSQL_RES *res;    
+    MYSQL_ROW row;
+
     // initialize connection handler
     conn = mysql_init(NULL);
     if (conn == NULL)
     {
         fprintf(stderr, "mysql_init() failed - probably out of memory\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     
     // connect to server
@@ -30,11 +39,31 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "mysql_real_connect() failed\n");
         mysql_close(conn);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+
+
+
+
+
+    if(mysql_query(conn, "SHOW tables"))
+    {
+        fprintf(stderr, "%s\n", mysql_error(conn));
+        exit(EXIT_FAILURE);
+    }
+    res = mysql_use_result(conn);
+    // output table name
+    printf("MySQL Tables in mysql database:\n");
+    while((row = mysql_fetch_row(res)) != NULL)
+    {
+        printf("%s\n",row[0]);
+    }
+    
+
     
     // disconnect from server
     fprintf(stdout, "mysql connection worked\n");    
     mysql_close(conn);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
+
