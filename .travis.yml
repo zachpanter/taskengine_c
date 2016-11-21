@@ -1,6 +1,6 @@
 before_install: 
  - sudo apt-get install mysql-client
- - sudo apt install libmysqlclient-dev
+# - sudo apt install libmysqlclient-dev
 
 language: C
 
