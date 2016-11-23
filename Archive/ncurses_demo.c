@@ -1,6 +1,8 @@
 #include <curses.h>
 #include <unistd.h>
 
+// https://www.viget.com/articles/c-games-in-ncurses-using-multiple-windows
+
 void draw_borders(WINDOW *screen) {
   int x, y, i;
 
