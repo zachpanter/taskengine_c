@@ -44,7 +44,11 @@ int main()
     scrollok(status_window_ptr, FALSE);
 
 
-
+    // draw borders around windows
+    box(command_window_ptr,0,0);
+    box(nav_window_ptr,0,0);
+    box(display_window_ptr,0,0);
+    box(status_window_ptr,0,0);
 
 
 
