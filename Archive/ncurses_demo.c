@@ -6,6 +6,7 @@
 void draw_borders(WINDOW *screen) {
   int x, y, i;
 
+  // get screen size
   getmaxyx(screen, y, x);
 
   // 4 corners
@@ -26,6 +27,10 @@ void draw_borders(WINDOW *screen) {
     mvwprintw(screen, y - 1, i, "-");
   }
 }
+
+
+
+
 
 int main(int argc, char *argv[]) {
   int parent_x, parent_y, new_x, new_y;
