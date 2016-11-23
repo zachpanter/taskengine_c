@@ -1,7 +1,6 @@
-CFLAGS=-Wall
-LDFLAGS=-lncurses
 
-all: demo
+all: 
+	gcc -ggdb -Wall -Werror ncurses_demo.c -o ncurses_demo -l ncurses
 
 clean:
-	rm -rf demo
+	rm -rf ncurses_demo
