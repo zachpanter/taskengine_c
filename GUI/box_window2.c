@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	//scrollok(middle_window_ptr, TRUE);
 	//scrollok(bottom_window_ptr, TRUE);
 
-	scrollok(left_window_ptr, FALSE);
+	scrollok(left_window_ptr, TRUE);
 	scrollok(right_window_ptr, TRUE);
 	scrollok(status_window_ptr,FALSE);
 
@@ -136,7 +136,7 @@ void *countUp(void *arg)
 		wattron((WINDOW *)arg, COLOR_PAIR(1));
 		//box((WINDOW * )arg,0,0);
 		wprintw((WINDOW *)arg," Counter = %d\n",counter1++);
-		sleep(1); //removed to make it go at full speed
+		//sleep(1); //removed to make it go at full speed
 		box((WINDOW * )arg,0,0);
 		pthread_mutex_unlock(&ncurses);
 
@@ -157,7 +157,7 @@ void *countDown(void *arg)
 	wrefresh((WINDOW *)arg);
 	wattron((WINDOW *)arg, COLOR_PAIR(3));
 	wprintw((WINDOW *)arg," Counter = %d\n",counter2--);
-	sleep(1); //removed to make it go at full speed
+	//sleep(1); //removed to make it go at full speed
 	box((WINDOW * )arg,0,0);
 	pthread_mutex_unlock(&ncurses);
 
