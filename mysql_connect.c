@@ -21,8 +21,7 @@ static unsigned int opt_flags = 0; // connection flags
 static MYSQL *conn; // pointer to connection handler
 
 
-void
-print_dashes (MYSQL_RES *res_set)
+void print_dashes (MYSQL_RES *res_set)
 {
 MYSQL_FIELD   *field;
 unsigned int  i, j;
@@ -39,8 +38,7 @@ unsigned int  i, j;
   fputc ('\n', stdout);
 }
 
-void
-process_result_set (MYSQL *conn, MYSQL_RES *res_set)
+void process_result_set (MYSQL *conn, MYSQL_RES *res_set)
 {
 MYSQL_ROW     row;
 /* #@ _COL_WID_CALC_VARS_ */
@@ -205,7 +203,7 @@ int main(int argc, char *argv[])
     }
 
 
-    process_statement(conn, "SELECT * FROM actionable;");
+    process_statement(conn, "SELECT actionable_title FROM actionable;");
     // VIEW ALL ACTIONABLES IN A taskrepo
     // Select taskrepo_id
     //if(mysql_query(conn, "SELECT * FROM actionable;"))

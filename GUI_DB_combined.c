@@ -245,7 +245,7 @@ void *countUp(void *arg)
 		box((WINDOW * )arg,0,0);
 		pthread_mutex_unlock(&ncurses);
 
-		if(getch() > 1)
+		if(getch() > 1) // replace with a handler for the up and down arrows to select a repo
 		{
 			break;
 		}
@@ -266,7 +266,7 @@ void *countDown(void *arg)
 	box((WINDOW * )arg,0,0);
 	pthread_mutex_unlock(&ncurses);
 
-		if(getch() > 1)
+		if(getch() > 1) // replace with a handler for the 
 		{
 			break;
 		}
