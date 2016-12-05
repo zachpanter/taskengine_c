@@ -2,11 +2,22 @@
 #include <menu.h>
 #include <string.h>
 
+/*
+Every menu created is associated with a window and a sub window. 
+The menu window displays any title or border associated with the menu. 
+The menu sub window displays the menu items currently available for selection. 
+But we didn't specify any window or sub window in the simple example. 
+When a window is not specified, stdscr is taken as the main window, 
+and then menu system calculates the sub window size required for the display of items. 
+Then items are displayed in the calculated sub window. 
+So let's play with these windows and display a menu with a border and a title.
+*/
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define CTRLD 	4
 
 char *choices[] = {
-                        "Choice 1",
+                        "Choice Test",
                         "Choice 2",
                         "Choice 3",
                         "Choice 4",
@@ -19,6 +30,24 @@ char *choices[] = {
                         "Exit",
                         (char *)NULL,
                   };
+
+
+char *choices2[] = {
+			"Gunna be 1",
+			"Two, maybe?",
+			"Three's a gas",
+			"Four for more!",
+			"Five in the hive",
+			"Six knicks",
+			"Seven 11",
+			"Eight is great",
+			"Nine is fine",
+			"Ten is bubbly",
+			"EXiT NOW",
+			(char *)NULL,
+
+                  };
+
 void print_in_middle(WINDOW *win, int starty, int startx, int width, char *string, chtype color);
 
 int main()
@@ -41,9 +70,9 @@ int main()
         n_choices = ARRAY_SIZE(choices);
         my_items = (ITEM **)calloc(n_choices, sizeof(ITEM *));
         for(i = 0; i < n_choices; ++i)
-                my_items[i] = new_item(choices[i], choices[i]);
+                my_items[i] = new_item(choices[i], choices2[i]);
 
-	/* Crate menu */
+	/* Create menu */
 	my_menu = new_menu((ITEM **)my_items);
 
 	/* Create the window to be associated with the menu */
