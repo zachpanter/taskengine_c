@@ -48,6 +48,22 @@ char *choices2[] = {
 
                   };
 
+char *choices3[] = {
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        " ",
+                        (char *)NULL,
+
+                  };
+
 void print_in_middle(WINDOW *win, int starty, int startx, int width, char *string, chtype color);
 
 int main()
@@ -70,7 +86,7 @@ int main()
         n_choices = ARRAY_SIZE(choices);
         my_items = (ITEM **)calloc(n_choices, sizeof(ITEM *));
         for(i = 0; i < n_choices; ++i)
-                my_items[i] = new_item(choices[i], choices2[i]);
+                my_items[i] = new_item(choices[i], choices3[i]);
 
 	/* Create menu */
 	my_menu = new_menu((ITEM **)my_items);
