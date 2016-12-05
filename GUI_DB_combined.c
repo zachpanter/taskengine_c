@@ -25,6 +25,8 @@ static char *opt_socket_name = NULL; //socket name
 static char *opt_db_name = "taskengine"; // database name
 static unsigned int opt_flags = 0; // connection flags
 static MYSQL *conn; // pointer to connection handler
+static MYSQL_RES *res;    
+static MYSQL_ROW row;
 
 
 // MYSQL FUNCTIONS
@@ -153,6 +155,25 @@ MYSQL_RES *res_set;
 
 int main(int argc, char *argv[])
 {
+
+
+    // INITIALIZE DATABASE CONNECTION HANDLER
+    conn = mysql_init(NULL);
+    if (conn == NULL)
+    {
+        fprintf(stderr, "mysql_init() failed - probably out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+	// CONNECT TO SERVER
+    if (mysql_real_connect (conn, opt_host_name, opt_user_name, opt_password, opt_db_name, opt_port_num, opt_socket_name, opt_flags) == NULL)
+    {
+        fprintf(stderr, "mysql_real_connect() failed\n");
+        mysql_close(conn);
+        exit(EXIT_FAILURE);
+    }
+
+
     // INITIALIZE NCURSES & WINDOWS
 	WINDOW *left_window_ptr;
 	WINDOW *right_window_ptr;
@@ -240,8 +261,22 @@ void *countUp(void *arg)
 		wrefresh((WINDOW *)arg);
 		wattron((WINDOW *)arg, COLOR_PAIR(1));
 		//box((WINDOW * )arg,0,0);
-		wprintw((WINDOW *)arg," Counter = %d\n",counter1++);
+		//wprintw((WINDOW *)arg," Counter = %d\n",counter1++);
 		//sleep(1); //removed to make it go at full speed
+												// LIST REPOS
+												if(mysql_query(conn, "SHOW tables"))
+												{
+													fprintf(stderr, "%s\n", mysql_error(conn));
+													exit(EXIT_FAILURE);
+												}
+												res = mysql_use_result(conn);
+												// output table name
+												printf("MySQL Tables in mysql database:\n");
+												while((row = mysql_fetch_row(res)) != NULL)
+												{
+													printf("%s\n",row[0]);
+												}
+												mysql_free_result(res);
 		box((WINDOW * )arg,0,0);
 		pthread_mutex_unlock(&ncurses);
 
@@ -261,8 +296,11 @@ void *countDown(void *arg)
 	pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 	wrefresh((WINDOW *)arg);
 	wattron((WINDOW *)arg, COLOR_PAIR(3));
-	wprintw((WINDOW *)arg," Counter = %d\n",counter2--);
+	//wprintw((WINDOW *)arg," Counter = %d\n",counter2--);
 	//sleep(1); //removed to make it go at full speed
+
+	process_statement(conn, "SELECT actionable_title FROM actionable;");
+
 	box((WINDOW * )arg,0,0);
 	pthread_mutex_unlock(&ncurses);
 
