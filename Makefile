@@ -1,3 +1,2 @@
-all:
-	gcc -c `mysql_config --cflags` mysql_connect.c
-	gcc -o mysql_connect mysql_connect.o `mysql_config --libs`
+GUI_DB_combined:
+	gcc GUI_DB_combined.c `mysql_config --cflags` -o GUI_DB_combined.o `mysql_config --libs` -l menu -l ncurses -l pthread
