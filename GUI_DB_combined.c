@@ -138,6 +138,26 @@ int main()
 // TO BE REPLACED WITH THE NAVIGATION WINDOW HANDLER
 void *navDiv(void *arg) 
 {
+	
+	// LIST REPOS
+	if(mysql_query(conn, " SHOW tables"))
+	{
+		wprintw(arg, " %s\n", mysql_error(conn));
+		exit(EXIT_FAILURE);
+	}
+	res = mysql_use_result(conn);
+	// output table name
+	//wprintw(arg," MySQL Tables in mysql database:\n");
+	while((row = mysql_fetch_row(res)) != NULL)
+	{
+		wprintw(arg," %s\n",row[0]);
+	}
+	mysql_free_result(res);
+
+	// Draw Border
+	wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+
+	// Action Handler
 	while(1)
 	{
 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
@@ -145,22 +165,10 @@ void *navDiv(void *arg)
 		wattron(arg, COLOR_PAIR(1));
 		//box((WINDOW * )arg,0,0);
 		//wprintw((WINDOW *)arg," Counter = %d\n",counter1++);
-		//sleep(1); //removed to make it go at full speed
-												// LIST REPOS
-												if(mysql_query(conn, "SHOW tables"))
-												{
-													wprintw(arg, "%s\n", mysql_error(conn));
-													exit(EXIT_FAILURE);
-												}
-												res = mysql_use_result(conn);
-												// output table name
-												wprintw(arg," MySQL Tables in mysql database:\n");
-												while((row = mysql_fetch_row(res)) != NULL)
-												{
-													wprintw(arg,"%s\n",row[0]);
-												}
-												mysql_free_result(res);
-		box(arg,0,0);
+		sleep(2); //removed to make it go at full speed
+
+		/* LOOPED ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
+		
 		pthread_mutex_unlock(&ncurses);
 
 		if(getch() > 1) // replace with a handler for the up and down arrows to select a repo
@@ -175,17 +183,23 @@ void *navDiv(void *arg)
 // TO BE REPLACED WITH THE DISPLAY WINDOW HANDLER
 void *displayDiv(void *arg)
 {
+	// Populate list
+	process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
+
+	// Draw border
+	wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+
+	// Action handler loop
 	while(1)
 	{
 	pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 	wrefresh(arg);
 	wattron(arg, COLOR_PAIR(3));
 	//wprintw((WINDOW *)arg," Counter = %d\n",counter2--);
-	//sleep(1); //removed to make it go at full speed
+	sleep(2); //removed to make it go at full speed
 
-	process_statement(conn, "SELECT actionable_title FROM actionable;", (WINDOW *)arg);
-
-	box(arg,0,0);
+	/* LOOPED ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
+	
 	pthread_mutex_unlock(&ncurses);
 
 		if(getch() > 1) // replace with a handler for the 
@@ -234,63 +248,64 @@ unsigned int  i, j;
 
 void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 {
-MYSQL_ROW     row;
-/* #@ _COL_WID_CALC_VARS_ */
-MYSQL_FIELD   *field;
-unsigned long col_len;
-unsigned int  i;
-/* #@ _COL_WID_CALC_VARS_ */
+	MYSQL_ROW     row;
+	/* #@ _COL_WID_CALC_VARS_ */
+	MYSQL_FIELD   *field;
+	unsigned long col_len;
+	unsigned int  i;
+	/* #@ _COL_WID_CALC_VARS_ */
 
-/* #@ _COL_WID_CALCULATIONS_ */
+	/* #@ _COL_WID_CALCULATIONS_ */
   /* determine column display widths; requires result set to be */
   /* generated with mysql_store_result(), not mysql_use_result() */
-  mysql_field_seek (res_set, 0);
-  for (i = 0; i < mysql_num_fields (res_set); i++)
-  {
-    field = mysql_fetch_field (res_set);
-    col_len = strlen (field->name);
-    if (col_len < field->max_length)
-      col_len = field->max_length;
-    if (col_len < 4 && !IS_NOT_NULL (field->flags))
-      col_len = 4;  /* 4 = length of the word "NULL" */
-    field->max_length = col_len;  /* reset column info */
-  }
+  
+	//mysql_field_seek (res_set, 0);
+  //for (i = 0; i < mysql_num_fields (res_set); i++)
+  //{
+  //  field = mysql_fetch_field (res_set);
+  //  col_len = strlen (field->name);
+  //  if (col_len < field->max_length)
+  //    col_len = field->max_length;
+  //  if (col_len < 4 && !IS_NOT_NULL (field->flags))
+  //    col_len = 4;  /* 4 = length of the word "NULL" */
+  //  field->max_length = col_len;  /* reset column info */
+  //}
+	
 /* #@ _COL_WID_CALCULATIONS_ */
 
   //print_dashes (res_set);
-  //fputc ('|', stdout);
+  //wprintw(arg,"|"); //fputc ('|', stdout);
   mysql_field_seek (res_set, 0);
   for (i = 0; i < mysql_num_fields (res_set); i++)
   {
     field = mysql_fetch_field (res_set);
 /* #@ _PRINT_TITLE_ */
-    wprintw (arg," %-*s \n", (int) field->max_length, field->name);
+    wprintw (arg," %-*s", (int) field->max_length, field->name);
 /* #@ _PRINT_TITLE_ */
   }
-  //fputc ('\n', stdout);
+  wprintw(arg, " \n"); //fputc ('\n', stdout);
   //print_dashes (res_set);
 
   while ((row = mysql_fetch_row (res_set)) != NULL)
   {
     mysql_field_seek (res_set, 0);
-    //fputc ('|', stdout);
+    //wprintw(arg, " |"); //fputc ('|', stdout);
     for (i = 0; i < mysql_num_fields (res_set); i++)
     {
       field = mysql_fetch_field (res_set);
 /* #@ _PRINT_ROW_VAL_ */
       if (row[i] == NULL)       /* print the word "NULL" */
-        wprintw (arg," %-*s |", (int) field->max_length, "NULL");
+        wprintw (arg," %-*s", (int) field->max_length, "NULL");
       else if (IS_NUM (field->type))  /* print value right-justified */
-        wprintw (arg," %*s ", (int) field->max_length, row[i]);
+        wprintw (arg," %*s", (int) field->max_length, row[i]);
       else              /* print value left-justified */
-        wprintw (arg," %-*s \n", (int) field->max_length, row[i]);
+        wprintw (arg," %-*s", (int) field->max_length, row[i]);
 /* #@ _PRINT_ROW_VAL_ */
     }
-    //fputc ('\n', stdout);
+    wprintw(arg, " \n"); //fputc ('\n', stdout);
   }
   //print_dashes (res_set);
-  wprintw (arg, "Number of rows returned: %lu\n",
-          (unsigned long) mysql_num_rows (res_set));
+  //wprintw (arg, "Number of rows returned: %lu\n", (unsigned long) mysql_num_rows (res_set));
 }
 
 
@@ -326,8 +341,7 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
        * statement generated no result set (it was not a SELECT,
        * SHOW, DESCRIBE, etc.); just report rows-affected value.
        */
-      wprintw(arg, "Number of rows affected: %ld\n",
-              (long) mysql_affected_rows (conn));
+      //wprintw(arg, "Number of rows affected: %ld\n", (long) mysql_affected_rows (conn));
     }
     else  /* an error occurred */
     {
