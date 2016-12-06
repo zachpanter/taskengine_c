@@ -138,40 +138,43 @@ int main()
 // TO BE REPLACED WITH THE NAVIGATION WINDOW HANDLER
 void *navDiv(void *arg) 
 {
-	
-	// LIST REPOS
-	if(mysql_query(conn, " SHOW tables"))
-	{
-		wprintw(arg, " %s\n", mysql_error(conn));
-		exit(EXIT_FAILURE);
-	}
-	res = mysql_use_result(conn);
-	// output table name
-	//wprintw(arg," MySQL Tables in mysql database:\n");
-	while((row = mysql_fetch_row(res)) != NULL)
-	{
-		wprintw(arg," %s\n",row[0]);
-	}
-	mysql_free_result(res);
+	// INITIAL DISPLAY
+		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		wrefresh(arg);
 
-	// Draw Border
-	wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		// LIST REPOS
+		if(mysql_query(conn, " SELECT taskrepo_name FROM taskrepo"))
+		{
+			wprintw(arg, " %s\n", mysql_error(conn));
+			exit(EXIT_FAILURE);
+		}
+		res = mysql_use_result(conn);
+		// output table name
+		//wprintw(arg," MySQL Tables in mysql database:\n");
+		wprintw(arg,"\n");
+		while((row = mysql_fetch_row(res)) != NULL)
+		{
+			wprintw(arg," %s\n",row[0]);
+		}
+		mysql_free_result(res);
 
-	// Action Handler
+		// Draw Border
+		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		pthread_mutex_unlock(&ncurses);
+
+	// ACTION HANDLER LOOP
 	while(1)
 	{
 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 		wrefresh(arg);
 		wattron(arg, COLOR_PAIR(1));
-		//box((WINDOW * )arg,0,0);
-		//wprintw((WINDOW *)arg," Counter = %d\n",counter1++);
 		sleep(2); //removed to make it go at full speed
 
-		/* LOOPED ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
+		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
 		
 		pthread_mutex_unlock(&ncurses);
 
-		if(getch() > 1) // replace with a handler for the up and down arrows to select a repo
+		if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
 		{
 			break;
 		}
@@ -183,31 +186,37 @@ void *navDiv(void *arg)
 // TO BE REPLACED WITH THE DISPLAY WINDOW HANDLER
 void *displayDiv(void *arg)
 {
-	// Populate list
-	process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
+	// INITIAL DISPLAY
+		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		wrefresh(arg);
 
-	// Draw border
-	wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		// Populate list
+		wprintw(arg,"\n");
+		process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
 
-	// Action handler loop
-	while(1)
-	{
-	pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-	wrefresh(arg);
-	wattron(arg, COLOR_PAIR(3));
-	//wprintw((WINDOW *)arg," Counter = %d\n",counter2--);
-	sleep(2); //removed to make it go at full speed
+		// Draw border
+		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 
-	/* LOOPED ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
-	
-	pthread_mutex_unlock(&ncurses);
+		pthread_mutex_unlock(&ncurses);
 
-		if(getch() > 1) // replace with a handler for the 
+	// ACTION HANDLER LOOP
+		while(1)
 		{
-			break;
+		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		wrefresh(arg);
+		wattron(arg, COLOR_PAIR(3));
+		sleep(2); //removed to make it go at full speed
+
+		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
+		
+		pthread_mutex_unlock(&ncurses);
+
+			if(getch() == 'q' || getch() == 'Q') // replace with a handler for the 
+			{
+				break;
+			}
 		}
-	}
-	pthread_exit(NULL);
+		pthread_exit(NULL);
 }
 
 // TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
