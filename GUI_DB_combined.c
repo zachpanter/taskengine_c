@@ -8,12 +8,18 @@
 #include <curses.h>
 #include <pthread.h>
 
+struct window_struct {
+	WINDOW *window_one;
+	WINDOW *window_two;
+} window_info;
+struct window_struct *window_info_ptr;
+
 // NCURSES GLOBAL VARIABLES
 unsigned int z = 0;
 int counter1 = 1;
 int counter2 = -1;
-void *navDiv(void *arg);
-void *displayDiv(void *arg);
+void navDiv(struct window_struct);
+//void *displayDiv(void *arg);
 void *statusDiv(void *arg);
 pthread_mutex_t ncurses;
 
@@ -38,8 +44,6 @@ void print_dashes (MYSQL_RES *res_set);
 
 int main()
 {
-
-
     // INITIALIZE DATABASE CONNECTION HANDLER
     conn = mysql_init(NULL);
     if (conn == NULL)
@@ -61,6 +65,7 @@ int main()
 	WINDOW *left_window_ptr;
 	WINDOW *right_window_ptr;
 	WINDOW *status_window_ptr;
+
 	initscr(); // initialize ncurses
 	cbreak();
 	timeout(1);
@@ -75,6 +80,11 @@ int main()
 	scrollok(left_window_ptr, TRUE);
 	scrollok(right_window_ptr, TRUE);
 	scrollok(status_window_ptr,FALSE);
+
+	// INITIALIZE WINDOW struct
+	window_info_ptr = &window_info;
+	window_info.window_one = left_window_ptr;
+	window_info.window_two = right_window_ptr;
 
     // INITIALIZE COLORS
 	has_colors(); // initialize color support
@@ -93,40 +103,42 @@ int main()
 	}
 	
     // CREATE THREADS
-	int res_1;
-	int res_2;
+	//int res_1;
+	//int res_2;
 	int res_line;
-	pthread_t a_thread_1;
-	pthread_t a_thread_2;
+	//pthread_t a_thread_1;
+	//pthread_t a_thread_2;
 	pthread_t a_thread_line;
-	void *thread_result_1;
-	void *thread_result_2;
+	//void *thread_result_1;
+	//void *thread_result_2;
 	void *thread_result_line;
 
-    // PERFORM THREADS
-	res_1 = pthread_create(&a_thread_1, NULL, navDiv, (void *)left_window_ptr);
-	res_2 = pthread_create(&a_thread_2, NULL, displayDiv, (void *)right_window_ptr);
+	navDiv(window_info);
+	
+	// PERFORM THREADS
+	//res_1 = pthread_create(&a_thread_1, NULL, navDiv, (void *)window_info_ptr);
+	//res_2 = pthread_create(&a_thread_2, NULL, displayDiv, (void *)right_window_ptr);
 	res_line = pthread_create(&a_thread_line, NULL, statusDiv, (void *)status_window_ptr);
-	if (res_1 != 0 || res_2 != 0 || res_line != 0)
+	if (res_line != 0)
 	{
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE); 
 	}
 
 	// JOIN THREADS
-	int res_join_1;
-	int res_join_2;
+	//int res_join_1;
+	//int res_join_2;
 	int res_join_line;
-	res_join_1 = pthread_join(a_thread_1, &thread_result_1);
-	res_join_2 = pthread_join(a_thread_2, &thread_result_2);
+	//res_join_1 = pthread_join(a_thread_1, &thread_result_1);
+	//res_join_2 = pthread_join(a_thread_2, &thread_result_2);
 	res_join_line = pthread_join(a_thread_line, &thread_result_line);
-	if (res_join_1 != 0 || res_join_2 != 0 || res_join_line != 0)
+	if (res_join_line != 0)
 	{
-		perror("Thread joins failed");
+		perror("Thread join failed");
 		exit(EXIT_FAILURE);
 	}
 
-	sleep(3);
+	//sleep(3);
 	nocbreak();	
 	echo();
 	endwin();	// Call endwin() before exiting the program.		
@@ -135,89 +147,99 @@ int main()
 } 
 
 
-// TO BE REPLACED WITH THE NAVIGATION WINDOW HANDLER
-void *navDiv(void *arg) 
+void navDiv(struct window_struct window_info) 
 {
+	WINDOW *left_window_ptr;
+	WINDOW *right_window_ptr;
+	left_window_ptr = window_info.window_one;
+	right_window_ptr = window_info.window_two;
+
 	// INITIAL DISPLAY
-		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		wrefresh(arg);
+		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		wrefresh(left_window_ptr);
+		wrefresh(right_window_ptr);
 
 		// LIST REPOS
 		if(mysql_query(conn, " SELECT taskrepo_name FROM taskrepo"))
 		{
-			wprintw(arg, " %s\n", mysql_error(conn));
+			wprintw(left_window_ptr, " %s\n", mysql_error(conn));
 			exit(EXIT_FAILURE);
 		}
 		res = mysql_use_result(conn);
 		// output table name
 		//wprintw(arg," MySQL Tables in mysql database:\n");
-		wprintw(arg,"\n");
+		wprintw(left_window_ptr,"\n");
 		while((row = mysql_fetch_row(res)) != NULL)
 		{
-			wprintw(arg," %s\n",row[0]);
+			wprintw(left_window_ptr," %s\n",row[0]);
 		}
 		mysql_free_result(res);
 
+		wprintw(right_window_ptr,"\n");
+		process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
+
 		// Draw Border
-		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
-		pthread_mutex_unlock(&ncurses);
+		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		wrefresh(left_window_ptr);
+		wrefresh(right_window_ptr);
+		//pthread_mutex_unlock(&ncurses);
 
 	// ACTION HANDLER LOOP
 	while(1)
 	{
-		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		wrefresh(arg);
-		wattron(arg, COLOR_PAIR(1));
+		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		
 		sleep(2); //removed to make it go at full speed
 
 		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
-		
-		pthread_mutex_unlock(&ncurses);
+		// wrefresh(arg);
+		// wattron(arg, COLOR_PAIR(1));
+
+		//pthread_mutex_unlock(&ncurses);
 
 		if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
 		{
 			break;
 		}
 	}
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
 }
 
+// void *displayDiv(void *arg)
+// {
+// 	// INITIAL DISPLAY
+// 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+// 		wrefresh(arg);
 
-// TO BE REPLACED WITH THE DISPLAY WINDOW HANDLER
-void *displayDiv(void *arg)
-{
-	// INITIAL DISPLAY
-		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		wrefresh(arg);
+// 		// Populate list
+// 		wprintw(arg,"\n");
+// 		process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
 
-		// Populate list
-		wprintw(arg,"\n");
-		process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
+// 		// Draw border
+// 		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 
-		// Draw border
-		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+// 		pthread_mutex_unlock(&ncurses);
 
-		pthread_mutex_unlock(&ncurses);
+// 	// ACTION HANDLER LOOP
+// 		while(1)
+// 		{
+// 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+// 		wrefresh(arg);
+// 		wattron(arg, COLOR_PAIR(3));
+// 		sleep(2); //removed to make it go at full speed
 
-	// ACTION HANDLER LOOP
-		while(1)
-		{
-		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		wrefresh(arg);
-		wattron(arg, COLOR_PAIR(3));
-		sleep(2); //removed to make it go at full speed
-
-		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
+// 		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
 		
-		pthread_mutex_unlock(&ncurses);
+// 		pthread_mutex_unlock(&ncurses);
 
-			if(getch() == 'q' || getch() == 'Q') // replace with a handler for the 
-			{
-				break;
-			}
-		}
-		pthread_exit(NULL);
-}
+// 			if(getch() == 'q' || getch() == 'Q') // replace with a handler for the 
+// 			{
+// 				break;
+// 			}
+// 		}
+// 		pthread_exit(NULL);
+// }
 
 // TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
 void *statusDiv(void *arg)
@@ -237,23 +259,23 @@ void *statusDiv(void *arg)
 	pthread_exit(NULL);
 }
 
-// MYSQL FUNCTIONS
-void print_dashes (MYSQL_RES *res_set)
-{
-MYSQL_FIELD   *field;
-unsigned int  i, j;
+// // MYSQL FUNCTIONS
+// void print_dashes (MYSQL_RES *res_set)
+// {
+// MYSQL_FIELD   *field;
+// unsigned int  i, j;
 
-  mysql_field_seek (res_set, 0);
-  fputc ('+', stdout);
-  for (i = 0; i < mysql_num_fields (res_set); i++)
-  {
-    field = mysql_fetch_field (res_set);
-    for (j = 0; j < field->max_length + 2; j++)
-      fputc ('-', stdout);
-    fputc ('+', stdout);
-  }
-  fputc ('\n', stdout);
-}
+//   mysql_field_seek (res_set, 0);
+//   fputc ('+', stdout);
+//   for (i = 0; i < mysql_num_fields (res_set); i++)
+//   {
+//     field = mysql_fetch_field (res_set);
+//     for (j = 0; j < field->max_length + 2; j++)
+//       fputc ('-', stdout);
+//     fputc ('+', stdout);
+//   }
+//   fputc ('\n', stdout);
+// }
 
 void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 {
@@ -262,59 +284,35 @@ void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 	MYSQL_FIELD   *field;
 	unsigned long col_len;
 	unsigned int  i;
-	/* #@ _COL_WID_CALC_VARS_ */
 
-	/* #@ _COL_WID_CALCULATIONS_ */
-  /* determine column display widths; requires result set to be */
-  /* generated with mysql_store_result(), not mysql_use_result() */
-  
-	//mysql_field_seek (res_set, 0);
-  //for (i = 0; i < mysql_num_fields (res_set); i++)
-  //{
-  //  field = mysql_fetch_field (res_set);
-  //  col_len = strlen (field->name);
-  //  if (col_len < field->max_length)
-  //    col_len = field->max_length;
-  //  if (col_len < 4 && !IS_NOT_NULL (field->flags))
-  //    col_len = 4;  /* 4 = length of the word "NULL" */
-  //  field->max_length = col_len;  /* reset column info */
-  //}
-	
-/* #@ _COL_WID_CALCULATIONS_ */
-
-  //print_dashes (res_set);
-  //wprintw(arg,"|"); //fputc ('|', stdout);
   mysql_field_seek (res_set, 0);
   for (i = 0; i < mysql_num_fields (res_set); i++)
   {
-    field = mysql_fetch_field (res_set);
-/* #@ _PRINT_TITLE_ */
-    wprintw (arg," %-*s", (int) field->max_length, field->name);
-/* #@ _PRINT_TITLE_ */
+//     field = mysql_fetch_field (res_set);
+// /* #@ _PRINT_TITLE_ */
+//     wprintw (arg," %-*s", (int) field->max_length, field->name);
+// /* #@ _PRINT_TITLE_ */
   }
-  wprintw(arg, " \n"); //fputc ('\n', stdout);
+  wprintw(arg, " \n");
   //print_dashes (res_set);
 
   while ((row = mysql_fetch_row (res_set)) != NULL)
   {
     mysql_field_seek (res_set, 0);
-    //wprintw(arg, " |"); //fputc ('|', stdout);
+    
     for (i = 0; i < mysql_num_fields (res_set); i++)
     {
       field = mysql_fetch_field (res_set);
-/* #@ _PRINT_ROW_VAL_ */
-      if (row[i] == NULL)       /* print the word "NULL" */
+	  // print row values
+      if (row[i] == NULL)       /* print "NULL" if field empty*/
         wprintw (arg," %-*s", (int) field->max_length, "NULL");
-      else if (IS_NUM (field->type))  /* print value right-justified */
-        wprintw (arg," %*s", (int) field->max_length, row[i]);
+    //   else if (IS_NUM (field->type))  /* print value right-justified */
+    //     wprintw (arg," %*s", (int) field->max_length, row[i]);
       else              /* print value left-justified */
         wprintw (arg," %-*s", (int) field->max_length, row[i]);
-/* #@ _PRINT_ROW_VAL_ */
     }
-    wprintw(arg, " \n"); //fputc ('\n', stdout);
+    wprintw(arg, " \n");
   }
-  //print_dashes (res_set);
-  //wprintw (arg, "Number of rows returned: %lu\n", (unsigned long) mysql_num_rows (res_set));
 }
 
 
@@ -340,10 +338,6 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
   }
   else              /* no result set was returned */
   {
-    /*
-     * does the lack of a result set mean that the statement didn't
-     * return one, or that it should have but an error occurred?
-     */
     if (mysql_field_count (conn) == 0)
     {
       /*
