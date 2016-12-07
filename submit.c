@@ -20,8 +20,8 @@ struct window_struct *window_info_ptr;
 
 // NCURSES GLOBAL VARIABLES
 unsigned int z = 0;
-//int counter1 = 1;
-//int counter2 = -1;
+int counter1 = 1;
+int counter2 = -1;
 void navDiv(struct window_struct);
 void *statusDiv(void *arg);
 pthread_mutex_t ncurses;
@@ -90,9 +90,9 @@ int main()
 	timeout(1);
 	refresh();
 	noecho();
-	main_height = LINES - 3;
+	main_height = LINES - 1;
 	half_width = COLS/2;
-	status_height = 3;
+	status_height = 2;
 	left_window_ptr = newwin(main_height, half_width,0,0);
 	right_window_ptr = newwin(main_height, half_width,0,half_width);
 	status_window_ptr = newwin(status_height,COLS,main_height,0); 
@@ -165,7 +165,7 @@ void navDiv(struct window_struct window_info)
 	right_window_ptr = window_info.window_two;
 
 	// INITIAL DISPLAY
-		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
+		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
 		keypad(left_window_ptr, TRUE);
@@ -192,7 +192,7 @@ void navDiv(struct window_struct window_info)
 			// wprintw(left_window_ptr," %s\n",row[0]);
 			//strcpy(repo_array[k],row[0]);
 			my_items[k] = new_item(row[0]," ");
-			// set_item_userptr(my_items[k], func);
+			set_item_userptr(my_items[k], func);
 			++k;
 		}
 		//strcpy(repo_array[k],(char *)NULL); // zero termination
@@ -200,7 +200,7 @@ void navDiv(struct window_struct window_info)
 		my_menu = new_menu((ITEM **)my_items); /* SEGFAULT SEGFAULT SEGFAULT  */
 		set_menu_win(my_menu, left_window_ptr);
 		set_menu_sub(my_menu, derwin(left_window_ptr, main_height - 1, half_width - 1, 1, 1));
-		set_menu_format(my_menu, 5, 1);
+		set_menu_format(my_menu, half_width - 3, main_height - 3);
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
 		wrefresh(left_window_ptr);
@@ -218,10 +218,8 @@ void navDiv(struct window_struct window_info)
 		// Draw BorderS
 		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
-		wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
-		wrefresh(status_window_ptr);
 		//pthread_mutex_unlock(&ncurses);
 
 	// ACTION HANDLER LOOP
@@ -235,7 +233,7 @@ void navDiv(struct window_struct window_info)
 		// wrefresh(arg);
 		// wattron(arg, COLOR_PAIR(1));
 
-		pthread_mutex_unlock(&ncurses);
+		//pthread_mutex_unlock(&ncurses);
 		switch(c)
 	    {	
 			case KEY_DOWN:
@@ -250,15 +248,15 @@ void navDiv(struct window_struct window_info)
 			case KEY_PPAGE:
 				menu_driver(my_menu, REQ_SCR_UPAGE);
 				break;
-			// case 10: /* ENTER */
+			case 10: /* ENTER */
 				
 				
 
-			// 	cur = current_item(my_menu);
-			// 	p = item_userptr(cur);
-			// 	p((char *)item_name(cur));
-			// 	pos_menu_cursor(my_menu);
-			// 	break;
+				cur = current_item(my_menu);
+				p = item_userptr(cur);
+				p((char *)item_name(cur));
+				pos_menu_cursor(my_menu);
+				break;
 		}
 
 		// if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
@@ -297,17 +295,16 @@ void navDiv(struct window_struct window_info)
 // TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
 void *statusDiv(void *arg)
 {
+	// DIVIDING LINE
 	pthread_mutex_lock(&ncurses);
-	// wattron(arg, COLOR_PAIR(2));
-	// char blueLine[COLS];
-	// strcpy(blueLine," ");
-	// for(z = 0; z < COLS-2; z++)
-	// {
-	// 	strcat(blueLine," ");
-	// }
-	// wprintw(arg,"%s",blueLine);
-
-
+	wattron(arg, COLOR_PAIR(2));
+	char blueLine[COLS];
+	strcpy(blueLine," ");
+	for(z = 0; z < COLS-2; z++)
+	{
+		strcat(blueLine," ");
+	}
+	wprintw(arg,"%s",blueLine);
 	wrefresh(arg);
 	pthread_mutex_unlock(&ncurses);
 	pthread_exit(NULL);
@@ -390,10 +387,8 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
 
 void func(char *name)
 {	//move(20, 0);
-	//wclrtoeol(status_window_ptr);
+	wclrtoeol(status_window_ptr);
 	//mvprintw(20, 0, "Item selected is : %s", name);
-	pthread_mutex_lock(&ncurses);
-	wprintw(status_window_ptr,"Item selected is : %s\n", name);
-	wrefresh(status_window_ptr);
-	pthread_mutex_unlock(&ncurses);
+	wprintw(right_window_ptr,"Item selected is : %s\n", name);
+	wrefresh(right_window_ptr);
 }
