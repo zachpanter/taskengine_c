@@ -51,6 +51,7 @@ void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW * arg);
 ITEM **my_items;
 MENU *my_menu;
 int k = 0;
+int c;
 int task_repo_max = 5;
 int string_length = 50;
 int n_choices = 0;
@@ -141,6 +142,7 @@ int main()
 	}
 
 	//sleep(3);
+	free(my_items);
 	nocbreak();	
 	echo();
 	endwin();	// Call endwin() before exiting the program.		
@@ -160,7 +162,7 @@ void navDiv(struct window_struct window_info)
 		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
-
+		keypad(left_window_ptr, TRUE);
 
 
 
@@ -194,9 +196,11 @@ void navDiv(struct window_struct window_info)
 		set_menu_format(my_menu, 5, 1);
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
+		wrefresh(left_window_ptr);
 
 
-		mysql_free_result(res);
+		mysql_free_result(res); // free up memory
+		
 
 
 
@@ -212,22 +216,62 @@ void navDiv(struct window_struct window_info)
 		//pthread_mutex_unlock(&ncurses);
 
 	// ACTION HANDLER LOOP
-	while(1)
+	while((c = wgetch(left_window_ptr)) != 'q')
 	{
 		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 		
-		sleep(2); //removed to make it go at full speed
+		//sleep(1); //removed to make it go at full speed
 
 		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
 		// wrefresh(arg);
 		// wattron(arg, COLOR_PAIR(1));
 
 		//pthread_mutex_unlock(&ncurses);
-
-		if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
-		{
-			break;
+		switch(c)
+	    {	
+			case KEY_DOWN:
+				menu_driver(my_menu, REQ_DOWN_ITEM);
+				break;
+			case KEY_UP:
+				menu_driver(my_menu, REQ_UP_ITEM);
+				break;
+			case KEY_NPAGE:
+				menu_driver(my_menu, REQ_SCR_DPAGE);
+				break;
+			case KEY_PPAGE:
+				menu_driver(my_menu, REQ_SCR_UPAGE);
+				break;
 		}
+
+		// if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
+		// {
+		// 	break;
+		// }
+		// else if (getch() == KEY_DOWN)
+		// {
+		// 	menu_driver(my_menu, REQ_DOWN_ITEM);
+		// 	wrefresh(left_window_ptr);
+		// 	continue;
+		// }
+		// else if (getch() == KEY_UP)
+		// {
+		// 	menu_driver(my_menu, REQ_UP_ITEM);
+		// 	wrefresh(left_window_ptr);
+		// 	continue;
+		// }
+		// else if (getch() == KEY_NPAGE)
+		// {
+		// 	menu_driver(my_menu, REQ_SCR_DPAGE);
+		// 	wrefresh(left_window_ptr);
+		// 	continue;
+		// }
+		// else if (getch() == KEY_PPAGE)
+		// {
+		// 	menu_driver(my_menu, REQ_SCR_UPAGE);
+		// 	wrefresh(left_window_ptr);
+		// 	continue;
+		// }
+
 	}
 	//pthread_exit(NULL);
 }
