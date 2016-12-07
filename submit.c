@@ -90,9 +90,9 @@ int main()
 	timeout(1);
 	refresh();
 	noecho();
-	main_height = LINES - 1;
+	main_height = LINES - 4;
 	half_width = COLS/2;
-	status_height = 2;
+	status_height = 3;
 	left_window_ptr = newwin(main_height, half_width,0,0);
 	right_window_ptr = newwin(main_height, half_width,0,half_width);
 	status_window_ptr = newwin(status_height,COLS,main_height,0); 
@@ -199,8 +199,10 @@ void navDiv(struct window_struct window_info)
 
 		my_menu = new_menu((ITEM **)my_items); /* SEGFAULT SEGFAULT SEGFAULT  */
 		set_menu_win(my_menu, left_window_ptr);
-		set_menu_sub(my_menu, derwin(left_window_ptr, main_height - 1, half_width - 1, 1, 1));
-		set_menu_format(my_menu, half_width - 3, main_height - 3);
+		WINDOW *derp_win = derwin(left_window_ptr, main_height - 6, half_width - 6, 1, 1);
+		set_menu_sub(my_menu, derp_win);
+		wborder(derp_win, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		set_menu_format(my_menu, half_width - 10, main_height - 4);
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
 		wrefresh(left_window_ptr);
@@ -215,32 +217,25 @@ void navDiv(struct window_struct window_info)
 		wprintw(right_window_ptr,"\n");
 		process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
 
-		// Draw BorderS
+		// Draw Borders
 		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
+		wrefresh(status_window_ptr);
 		//pthread_mutex_unlock(&ncurses);
 
 	// ACTION HANDLER LOOP
 	while((c = wgetch(left_window_ptr)) != 'q')
 	{
-		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		
-		//sleep(1); //removed to make it go at full speed
-
-		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
-		// wrefresh(arg);
-		// wattron(arg, COLOR_PAIR(1));
-
-		//pthread_mutex_unlock(&ncurses);
 		switch(c)
 	    {	
 			case KEY_DOWN:
-				menu_driver(my_menu, REQ_DOWN_ITEM);
+				menu_driver(my_menu, REQ_NEXT_ITEM);
 				break;
 			case KEY_UP:
-				menu_driver(my_menu, REQ_UP_ITEM);
+				menu_driver(my_menu, REQ_PREV_ITEM);
 				break;
 			case KEY_NPAGE:
 				menu_driver(my_menu, REQ_SCR_DPAGE);
@@ -249,47 +244,13 @@ void navDiv(struct window_struct window_info)
 				menu_driver(my_menu, REQ_SCR_UPAGE);
 				break;
 			case 10: /* ENTER */
-				
-				
-
 				cur = current_item(my_menu);
 				p = item_userptr(cur);
 				p((char *)item_name(cur));
 				pos_menu_cursor(my_menu);
 				break;
 		}
-
-		// if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
-		// {
-		// 	break;
-		// }
-		// else if (getch() == KEY_DOWN)
-		// {
-		// 	menu_driver(my_menu, REQ_DOWN_ITEM);
-		// 	wrefresh(left_window_ptr);
-		// 	continue;
-		// }
-		// else if (getch() == KEY_UP)
-		// {
-		// 	menu_driver(my_menu, REQ_UP_ITEM);
-		// 	wrefresh(left_window_ptr);
-		// 	continue;
-		// }
-		// else if (getch() == KEY_NPAGE)
-		// {
-		// 	menu_driver(my_menu, REQ_SCR_DPAGE);
-		// 	wrefresh(left_window_ptr);
-		// 	continue;
-		// }
-		// else if (getch() == KEY_PPAGE)
-		// {
-		// 	menu_driver(my_menu, REQ_SCR_UPAGE);
-		// 	wrefresh(left_window_ptr);
-		// 	continue;
-		// }
-
 	}
-	//pthread_exit(NULL);
 }
 
 // TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
@@ -297,6 +258,7 @@ void *statusDiv(void *arg)
 {
 	// DIVIDING LINE
 	pthread_mutex_lock(&ncurses);
+	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 	wattron(arg, COLOR_PAIR(2));
 	char blueLine[COLS];
 	strcpy(blueLine," ");
@@ -304,6 +266,7 @@ void *statusDiv(void *arg)
 	{
 		strcat(blueLine," ");
 	}
+	wprintw(arg,"test");
 	wprintw(arg,"%s",blueLine);
 	wrefresh(arg);
 	pthread_mutex_unlock(&ncurses);
@@ -317,14 +280,6 @@ void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 	unsigned long col_len;
 	unsigned int  i;
 
-//   mysql_field_seek (res_set, 0);
-//   for (i = 0; i < mysql_num_fields (res_set); i++)
-//   {
-//      field = mysql_fetch_field (res_set);
-//  	/* #@ _PRINT_TITLE_ */
-//      wprintw (arg," %-*s", (int) field->max_length, field->name);
-//  	/* #@ _PRINT_TITLE_ */
-//   }
   wprintw(arg, " \n");
   while ((row = mysql_fetch_row (res_set)) != NULL)
   {
@@ -386,9 +341,11 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
 }
 
 void func(char *name)
-{	//move(20, 0);
+{	
+	wmove(status_window_ptr, 1, 1);
 	wclrtoeol(status_window_ptr);
 	//mvprintw(20, 0, "Item selected is : %s", name);
-	wprintw(right_window_ptr,"Item selected is : %s\n", name);
-	wrefresh(right_window_ptr);
+	wprintw(status_window_ptr," Item selected is : %s\n", name);
+	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+	wrefresh(status_window_ptr);
 }
