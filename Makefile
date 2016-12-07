@@ -1,5 +1,5 @@
-GUI_DB_combined:
-	gcc GUI_DB_combined.c `mysql_config --cflags` -o GUI_DB_combined.o `mysql_config --libs` -l menu -l ncurses -l pthread
+submit:
+	gcc submit.c `mysql_config --cflags` -o submit.o `mysql_config --libs` -l menu -l ncurses -l pthread
 
 clean:
-	rm GUI_DB_combined.o
+	rm submit.o
