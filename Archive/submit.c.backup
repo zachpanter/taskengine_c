@@ -7,8 +7,12 @@
 #include <unistd.h>
 #include <curses.h>
 #include <pthread.h>
+#include <menu.h>
 
-struct window_struct {
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+struct window_struct 
+{
 	WINDOW *window_one;
 	WINDOW *window_two;
 } window_info;
@@ -19,9 +23,14 @@ unsigned int z = 0;
 int counter1 = 1;
 int counter2 = -1;
 void navDiv(struct window_struct);
-//void *displayDiv(void *arg);
 void *statusDiv(void *arg);
 pthread_mutex_t ncurses;
+int main_height;
+int half_width;
+int status_height;
+WINDOW *left_window_ptr;
+WINDOW *right_window_ptr;
+WINDOW *status_window_ptr;
 
 // MYSQL GLOBAL VARIABLES
 static char *opt_host_name = NULL; // server host (default = localhost)
@@ -39,9 +48,21 @@ static MYSQL_ROW row;
 // MYSQL FUNCTION DECLARATIONS
 void process_statement (MYSQL *conn, char *stmt_str, WINDOW * arg);
 void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW * arg);
-void print_dashes (MYSQL_RES *res_set);
 
 
+// MENU VARIABLES
+ITEM **my_items;
+MENU *my_menu;
+int k = 0;
+int c;
+int task_repo_max = 5;
+int string_length = 50;
+int n_choices = 0;
+int my_num_rows = 0;
+void func(char *name);
+ITEM *cur;
+void (*p)(char *);
+ 
 int main()
 {
     // INITIALIZE DATABASE CONNECTION HANDLER
@@ -62,18 +83,16 @@ int main()
 
 
     // INITIALIZE NCURSES & WINDOWS
-	WINDOW *left_window_ptr;
-	WINDOW *right_window_ptr;
-	WINDOW *status_window_ptr;
+
 
 	initscr(); // initialize ncurses
 	cbreak();
 	timeout(1);
 	refresh();
 	noecho();
-	int main_height = LINES - 1;
-	int half_width = COLS/2;
-	int status_height = 2;
+	main_height = LINES - 4;
+	half_width = COLS/2;
+	status_height = 3;
 	left_window_ptr = newwin(main_height, half_width,0,0);
 	right_window_ptr = newwin(main_height, half_width,0,half_width);
 	status_window_ptr = newwin(status_height,COLS,main_height,0); 
@@ -102,22 +121,14 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 	
-    // CREATE THREADS
-	//int res_1;
-	//int res_2;
+    // CREATE THREAD VARIABLES
 	int res_line;
-	//pthread_t a_thread_1;
-	//pthread_t a_thread_2;
 	pthread_t a_thread_line;
-	//void *thread_result_1;
-	//void *thread_result_2;
 	void *thread_result_line;
 
 	navDiv(window_info);
 	
-	// PERFORM THREADS
-	//res_1 = pthread_create(&a_thread_1, NULL, navDiv, (void *)window_info_ptr);
-	//res_2 = pthread_create(&a_thread_2, NULL, displayDiv, (void *)right_window_ptr);
+	// CREATE STATUS THREAD
 	res_line = pthread_create(&a_thread_line, NULL, statusDiv, (void *)status_window_ptr);
 	if (res_line != 0)
 	{
@@ -125,12 +136,8 @@ int main()
 		exit(EXIT_FAILURE); 
 	}
 
-	// JOIN THREADS
-	//int res_join_1;
-	//int res_join_2;
+	// JOIN STATUS THREAD TO MAIN
 	int res_join_line;
-	//res_join_1 = pthread_join(a_thread_1, &thread_result_1);
-	//res_join_2 = pthread_join(a_thread_2, &thread_result_2);
 	res_join_line = pthread_join(a_thread_line, &thread_result_line);
 	if (res_join_line != 0)
 	{
@@ -139,6 +146,9 @@ int main()
 	}
 
 	//sleep(3);
+	unpost_menu(my_menu);
+	free_menu(my_menu);
+	free(my_items);
 	nocbreak();	
 	echo();
 	endwin();	// Call endwin() before exiting the program.		
@@ -158,6 +168,9 @@ void navDiv(struct window_struct window_info)
 		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
+		keypad(left_window_ptr, TRUE);
+
+
 
 		// LIST REPOS
 		if(mysql_query(conn, " SELECT taskrepo_name FROM taskrepo"))
@@ -165,87 +178,92 @@ void navDiv(struct window_struct window_info)
 			wprintw(left_window_ptr, " %s\n", mysql_error(conn));
 			exit(EXIT_FAILURE);
 		}
-		res = mysql_use_result(conn);
-		// output table name
-		//wprintw(arg," MySQL Tables in mysql database:\n");
+		res = mysql_store_result(conn);
 		wprintw(left_window_ptr,"\n");
+		
+		char repo_array[task_repo_max][string_length];
+		k = 0;
+		my_num_rows = mysql_num_rows(res);
+		n_choices = my_num_rows + 1;
+		my_items = (ITEM **)calloc(n_choices, sizeof(ITEM *));
 		while((row = mysql_fetch_row(res)) != NULL)
 		{
-			wprintw(left_window_ptr," %s\n",row[0]);
+			// Instead of printing them, I want to add them to a menu
+			// wprintw(left_window_ptr," %s\n",row[0]);
+			//strcpy(repo_array[k],row[0]);
+			my_items[k] = new_item(row[0]," ");
+			set_item_userptr(my_items[k], func);
+			++k;
 		}
-		mysql_free_result(res);
+		//strcpy(repo_array[k],(char *)NULL); // zero termination
 
-		wprintw(right_window_ptr,"\n");
-		process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
+		my_menu = new_menu((ITEM **)my_items); /* SEGFAULT SEGFAULT SEGFAULT  */
+		set_menu_win(my_menu, left_window_ptr);
+		WINDOW *derp_win = derwin(left_window_ptr, main_height - 6, half_width - 6, 1, 1);
+		set_menu_sub(my_menu, derp_win);
+		//wborder(derp_win, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		set_menu_format(my_menu, half_width - 30, main_height - 4);
+		set_menu_mark(my_menu, " * ");
+		post_menu(my_menu);
+		wrefresh(left_window_ptr);
 
-		// Draw Border
+
+		mysql_free_result(res); // free up memory
+		
+
+
+
+		// // LIST ACTIONABLES
+		// wprintw(right_window_ptr,"\n");
+		// process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
+
+		// Draw Borders
 		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 		wrefresh(left_window_ptr);
 		wrefresh(right_window_ptr);
+		wrefresh(status_window_ptr);
 		//pthread_mutex_unlock(&ncurses);
 
 	// ACTION HANDLER LOOP
-	while(1)
+	while((c = wgetch(left_window_ptr)) != 'q')
 	{
-		//pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-		
-		sleep(2); //removed to make it go at full speed
-
-		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
-		// wrefresh(arg);
-		// wattron(arg, COLOR_PAIR(1));
-
-		//pthread_mutex_unlock(&ncurses);
-
-		if(getch() == 'q' || getch() == 'Q') // replace with a handler for the up and down arrows to select a repo
-		{
-			break;
+		switch(c)
+	    {	
+			case KEY_DOWN:
+				menu_driver(my_menu, REQ_NEXT_ITEM);
+				break;
+			case KEY_RIGHT:
+				menu_driver(my_menu, REQ_NEXT_ITEM);
+				break;
+			case KEY_UP:
+				menu_driver(my_menu, REQ_PREV_ITEM);
+				break;
+			case KEY_LEFT:
+				menu_driver(my_menu, REQ_PREV_ITEM);
+			case KEY_NPAGE:
+				menu_driver(my_menu, REQ_SCR_DPAGE);
+				break;
+			case KEY_PPAGE:
+				menu_driver(my_menu, REQ_SCR_UPAGE);
+				break;
+			case 10: /* ENTER */
+				cur = current_item(my_menu);
+				p = item_userptr(cur);
+				p((char *)item_name(cur));
+				pos_menu_cursor(my_menu);
+				break;
 		}
 	}
-	//pthread_exit(NULL);
 }
-
-// void *displayDiv(void *arg)
-// {
-// 	// INITIAL DISPLAY
-// 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-// 		wrefresh(arg);
-
-// 		// Populate list
-// 		wprintw(arg,"\n");
-// 		process_statement(conn, "SELECT actionable_title FROM actionable;", arg);
-
-// 		// Draw border
-// 		wborder(arg, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
-
-// 		pthread_mutex_unlock(&ncurses);
-
-// 	// ACTION HANDLER LOOP
-// 		while(1)
-// 		{
-// 		pthread_mutex_lock(&ncurses); 	// Use pthread_mutex_lock() and pthread_mutex_unlock() to create the critical sections
-// 		wrefresh(arg);
-// 		wattron(arg, COLOR_PAIR(3));
-// 		sleep(2); //removed to make it go at full speed
-
-// 		/* LOOPED ncurses ACTIONS GO HERE!!!!!!!!!!!!!!!!!!!! */
-		
-// 		pthread_mutex_unlock(&ncurses);
-
-// 			if(getch() == 'q' || getch() == 'Q') // replace with a handler for the 
-// 			{
-// 				break;
-// 			}
-// 		}
-// 		pthread_exit(NULL);
-// }
 
 // TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
 void *statusDiv(void *arg)
 {
 	// DIVIDING LINE
 	pthread_mutex_lock(&ncurses);
+	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 	wattron(arg, COLOR_PAIR(2));
 	char blueLine[COLS];
 	strcpy(blueLine," ");
@@ -253,49 +271,21 @@ void *statusDiv(void *arg)
 	{
 		strcat(blueLine," ");
 	}
+	wprintw(arg,"test");
 	wprintw(arg,"%s",blueLine);
 	wrefresh(arg);
 	pthread_mutex_unlock(&ncurses);
 	pthread_exit(NULL);
 }
 
-// // MYSQL FUNCTIONS
-// void print_dashes (MYSQL_RES *res_set)
-// {
-// MYSQL_FIELD   *field;
-// unsigned int  i, j;
-
-//   mysql_field_seek (res_set, 0);
-//   fputc ('+', stdout);
-//   for (i = 0; i < mysql_num_fields (res_set); i++)
-//   {
-//     field = mysql_fetch_field (res_set);
-//     for (j = 0; j < field->max_length + 2; j++)
-//       fputc ('-', stdout);
-//     fputc ('+', stdout);
-//   }
-//   fputc ('\n', stdout);
-// }
-
 void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 {
 	MYSQL_ROW     row;
-	/* #@ _COL_WID_CALC_VARS_ */
 	MYSQL_FIELD   *field;
 	unsigned long col_len;
 	unsigned int  i;
 
-  mysql_field_seek (res_set, 0);
-  for (i = 0; i < mysql_num_fields (res_set); i++)
-  {
-//     field = mysql_fetch_field (res_set);
-// /* #@ _PRINT_TITLE_ */
-//     wprintw (arg," %-*s", (int) field->max_length, field->name);
-// /* #@ _PRINT_TITLE_ */
-  }
   wprintw(arg, " \n");
-  //print_dashes (res_set);
-
   while ((row = mysql_fetch_row (res_set)) != NULL)
   {
     mysql_field_seek (res_set, 0);
@@ -303,13 +293,15 @@ void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
     for (i = 0; i < mysql_num_fields (res_set); i++)
     {
       field = mysql_fetch_field (res_set);
-	  // print row values
-      if (row[i] == NULL)       /* print "NULL" if field empty*/
+	  // instead of printing row values, I want to add them to a menu
+	  if (row[i] == NULL)
+	  {
         wprintw (arg," %-*s", (int) field->max_length, "NULL");
-    //   else if (IS_NUM (field->type))  /* print value right-justified */
-    //     wprintw (arg," %*s", (int) field->max_length, row[i]);
-      else              /* print value left-justified */
+	  }
+      else
+	  { 
         wprintw (arg," %-*s", (int) field->max_length, row[i]);
+	  }
     }
     wprintw(arg, " \n");
   }
@@ -334,6 +326,8 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
   {
     /* process rows and free the result set */
     process_result_set (conn, res_set, arg);
+	wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+	wrefresh(right_window_ptr);
     mysql_free_result (res_set);
   }
   else              /* no result set was returned */
@@ -351,4 +345,29 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
       wprintw(arg, "Could not retrieve result set");
     }
   }
+}
+
+void func(char *name)
+{	
+	wmove(status_window_ptr, 1, 1);
+	wclrtoeol(status_window_ptr);
+	//mvprintw(20, 0, "Item selected is : %s", name);
+	wprintw(status_window_ptr," Actionables shown for : %s\n", name);
+	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+	wrefresh(status_window_ptr);
+
+	wprintw(right_window_ptr,"\n");
+
+	// PREPARE QUERY STRING
+	char query_string[200];
+	strcpy(query_string,"SELECT actionable.actionable_title FROM actionable JOIN taskrepo ON (actionable.taskrepo_id = taskrepo.taskrepo_id) WHERE taskrepo.taskrepo_name = '");
+	strcat(query_string, name);
+	strcat(query_string, "';");
+	//wprintw(right_window_ptr,"%s\n", query_string);
+	
+	// EXECUTE QUERY
+	wclear(right_window_ptr);
+	wmove(right_window_ptr, 1, 1);
+	process_statement(conn, query_string, right_window_ptr);
+	wrefresh(right_window_ptr);
 }
