@@ -8,8 +8,13 @@
 #include <curses.h>
 #include <pthread.h>
 #include <menu.h>
+#include <fcntl.h>
+#include <limits.h> 
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+#define BUFFER_SIZE PIPE_BUF
 
 struct window_struct 
 {
@@ -143,6 +148,27 @@ int main()
 	popup_window_ptr = newwin(three_fifths_height,three_fifths_width,fifth_height,fifth_width);
 	box(popup_window_ptr, '|', '-');
 	char welcome_string[] = "Welcome to TaskEngine";
+
+	// // PIPE
+	// int open_mode = 0;
+	// open_mode |= O_WRONLY;
+	// int pipe_fd;
+	// int pipe_res;
+	// char buffer[BUFFER_SIZE + 1];
+	// char my_pipe[] = "my_pipe";
+	// mkfifo(my_pipe, 0777); // use mkfifo() to create the FIFO in parent.
+	// pipe_fd = open(my_pipe, open_mode);
+	// write(pipe_fd, welcome_string, BUFFER_SIZE);
+	// //write(pipe_fd, welcome_string, sizeof(welcome_string) + 1);
+	// //sleep(3);
+	// open_mode = O_RDONLY;
+	// pipe_fd = open(my_pipe, open_mode);
+	// do
+	// {
+	// 	pipe_res = read(pipe_fd, buffer, BUFFER_SIZE);
+	// } while(pipe_res >0);
+
+
 	char nav_string[] = "Press arrow keys to navigate taskrepos";
 	char insert_string[] = "Press 'n' to insert a new actionable";
 	//const char delete_string[] = "Press 'd' to delete an actionable";
@@ -185,6 +211,7 @@ int main()
 	}
 
 	//sleep(3);
+	unlink("my_pipe");
 	unpost_menu(my_menu);
 	free_menu(my_menu);
 	free(my_items);
@@ -297,6 +324,7 @@ void navDiv(struct window_struct window_info)
 				MYSQL_FIELD   *id_field;
 				// EXECUTE QUERY
 				mysql_query(conn, query_string_which_taskrepoID);
+				id_res_set = mysql_store_result(conn);
 				// DONE EXECUTING QUERY
 				id_row = mysql_fetch_row(id_res_set); /* ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR */
 				char *taskrepo_id;
