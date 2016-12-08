@@ -270,9 +270,9 @@ void navDiv(struct window_struct window_info)
 	{
 		switch(c)
 	    {	
-			case 'n':
+			case 'n': 
 				timeout(20);
-				nocbreak(); // enable cooked mode
+				nocbreak(); // enable cooked mode 
 				echo(); // echo input to user
 				
 				// INSERT POPUP
@@ -295,9 +295,12 @@ void navDiv(struct window_struct window_info)
 				MYSQL_RES *id_res_set;
 				MYSQL_ROW     id_row;
 				MYSQL_FIELD   *id_field;
-				id_row = mysql_fetch_row(id_res_set);
+				// EXECUTE QUERY
+				mysql_query(conn, query_string_which_taskrepoID);
+				// DONE EXECUTING QUERY
+				id_row = mysql_fetch_row(id_res_set); /* ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR */
 				char *taskrepo_id;
-				taskrepo_id = id_row[0]; /* ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR */
+				taskrepo_id = id_row[0]; 
 				mysql_free_result (id_res_set);
 				
 				// Get actionable title
