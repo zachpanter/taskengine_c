@@ -227,6 +227,10 @@ int main()
 
 void navDiv(struct window_struct window_info) 
 {
+
+	// CHECK IF MENU EXISTS
+	// IF IT DOES, FREE UP ALL ITEMS TO START OVER FRESH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	WINDOW *left_window_ptr;
 	WINDOW *right_window_ptr;
 	left_window_ptr = window_info.window_one;
@@ -263,6 +267,7 @@ void navDiv(struct window_struct window_info)
 			set_item_userptr(my_items[k], func);
 			++k;
 		}
+		mysql_free_result(res); // free up memory
 		//strcpy(repo_array[k],(char *)NULL); // zero termination
 
 		my_menu = new_menu((ITEM **)my_items); /* SEGFAULT SEGFAULT SEGFAULT  */
@@ -274,7 +279,7 @@ void navDiv(struct window_struct window_info)
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
 		wrefresh(left_window_ptr);
-		mysql_free_result(res); // free up memory
+		//mysql_free_result(res); // free up memory
 
 
 		// Draw Borders
