@@ -126,18 +126,18 @@ int main()
 	pthread_t a_thread_line;
 	void *thread_result_line;
 
-	// POPUP WINDOW
+	// SPLASH SCREEN POPUP WINDOW COORDS
 	int fifth_height = LINES / 5;
 	int three_fifths_height = (LINES / 5) * 3;
 	int fifth_width = COLS / 5;
 	int three_fifths_width = (COLS / 5) * 3;
 	int three_fifths_width_middle = three_fifths_width / 2;
 	int middle_height = three_fifths_height / 2;
-	
 	int middle_welcome_y = middle_height - 3;
 	int middle_nav_y = middle_height - 2;
 	int middle_insert_y = middle_height - 1;
 	int middle_quit_y = middle_height - 0;
+
 
 	WINDOW *popup_window_ptr;
 	popup_window_ptr = newwin(three_fifths_height,three_fifths_width,fifth_height,fifth_width);
@@ -164,6 +164,7 @@ int main()
 	sleep(6);
 	delwin(popup_window_ptr);
 
+	// PRINT MAIN DISPLAY WINDOWS
 	navDiv(window_info);
 	
 	// CREATE STATUS THREAD
@@ -269,6 +270,56 @@ void navDiv(struct window_struct window_info)
 	{
 		switch(c)
 	    {	
+			case 'n':
+				timeout(20);
+				nocbreak(); // enable cooked mode
+				echo(); // echo input to user
+				
+				// INSERT POPUP
+				WINDOW *insert_pop_up_ptr;
+				int insert_three_fifths_height = (LINES / 5) * 3;
+				int insert_three_fifths_width = (COLS / 5) * 3;
+				int insert_fifth_height = LINES / 5;
+				int insert_fifth_width = COLS / 5;
+				insert_pop_up_ptr = newwin(insert_three_fifths_height, insert_three_fifths_width, insert_fifth_height, insert_fifth_width);
+				box(insert_pop_up_ptr, '|', '-');
+
+				// Get task repo
+				char taskrepo_string[20];
+				mvwprintw(insert_pop_up_ptr,1,1,"Enter in the repo in which to create the actionable: ");
+				mvwgetstr(insert_pop_up_ptr, 2,1, taskrepo_string); //mvwgetstr(WINDOW *win, int y, int x, char *str);
+				char query_string_which_taskrepoID[200];
+				strcpy(query_string_which_taskrepoID, "SELECT taskrepo_id FROM taskrepo WHERE taskrepo_name = '");
+				strcat(query_string_which_taskrepoID, taskrepo_string);
+				strcat(query_string_which_taskrepoID, "';");
+				MYSQL_RES *id_res_set;
+				MYSQL_ROW     id_row;
+				MYSQL_FIELD   *id_field;
+				id_row = mysql_fetch_row(id_res_set);
+				char *taskrepo_id;
+				taskrepo_id = id_row[0]; /* ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR */
+				mysql_free_result (id_res_set);
+				
+				// Get actionable title
+				char actionable_name[30];
+				mvwprintw(insert_pop_up_ptr,3,1,"Enter in the actionable's title: ");
+				mvwgetstr(insert_pop_up_ptr, 4,1, actionable_name); //mvwgetstr(WINDOW *win, int y, int x, char *str);
+				char query_string_insert[200];
+				strcpy(query_string_insert, "INSERT into actionable (taskrepo_id, actionable_title) VALUES ('");
+				strcat(query_string_insert, taskrepo_id);
+				strcat(query_string_insert, "', '");
+				strcat(query_string_insert, actionable_name);
+				strcat(query_string_insert, "');");
+				if (mysql_query(conn, query_string_insert))
+				{
+					mvwprintw(insert_pop_up_ptr, 5, 1, "Insert failed!");
+				}
+
+				noecho(); // don't echo
+				cbreak(); // return to raw mode
+				timeout(1);
+				break;
+
 			case KEY_DOWN:
 				menu_driver(my_menu, REQ_NEXT_ITEM);
 				break;
