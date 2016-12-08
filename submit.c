@@ -28,6 +28,7 @@ unsigned int z = 0;
 int counter1 = 1;
 int counter2 = -1;
 void navDiv(struct window_struct);
+void actionHandler(struct window_struct);
 void *statusDiv(void *arg);
 pthread_mutex_t ncurses;
 int main_height;
@@ -192,6 +193,7 @@ int main()
 
 	// PRINT MAIN DISPLAY WINDOWS
 	navDiv(window_info);
+	actionHandler(window_info);
 	
 	// CREATE STATUS THREAD
 	res_line = pthread_create(&a_thread_line, NULL, statusDiv, (void *)status_window_ptr);
@@ -211,7 +213,7 @@ int main()
 	}
 
 	//sleep(3);
-	unlink("my_pipe");
+	//unlink("my_pipe");
 	unpost_menu(my_menu);
 	free_menu(my_menu);
 	free(my_items);
@@ -272,16 +274,8 @@ void navDiv(struct window_struct window_info)
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
 		wrefresh(left_window_ptr);
-
-
 		mysql_free_result(res); // free up memory
-		
 
-
-
-		// // LIST ACTIONABLES
-		// wprintw(right_window_ptr,"\n");
-		// process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
 
 		// Draw Borders
 		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
@@ -291,6 +285,14 @@ void navDiv(struct window_struct window_info)
 		wrefresh(right_window_ptr);
 		wrefresh(status_window_ptr);
 		//pthread_mutex_unlock(&ncurses);
+}
+
+void actionHandler(struct window_struct window_info)
+{
+	WINDOW *left_window_ptr;
+	WINDOW *right_window_ptr;
+	left_window_ptr = window_info.window_one;
+	right_window_ptr = window_info.window_two;
 
 	// ACTION HANDLER LOOP
 	while((c = wgetch(left_window_ptr)) != 'q')
@@ -336,19 +338,21 @@ void navDiv(struct window_struct window_info)
 				mvwprintw(insert_pop_up_ptr,3,1,"Enter in the actionable's title: ");
 				mvwgetstr(insert_pop_up_ptr, 4,1, actionable_name); //mvwgetstr(WINDOW *win, int y, int x, char *str);
 				char query_string_insert[200];
-				strcpy(query_string_insert, "INSERT into actionable (taskrepo_id, actionable_title) VALUES ('");
+				strcpy(query_string_insert, "INSERT into actionable (taskrepo_id, actionable_title, actionable_createddate) VALUES ('");
 				strcat(query_string_insert, taskrepo_id);
 				strcat(query_string_insert, "', '");
 				strcat(query_string_insert, actionable_name);
-				strcat(query_string_insert, "');");
+				strcat(query_string_insert, "', NOW());");
 				if (mysql_query(conn, query_string_insert))
 				{
 					mvwprintw(insert_pop_up_ptr, 5, 1, "Insert failed!");
 				}
 
+				delwin(insert_pop_up_ptr);
 				noecho(); // don't echo
 				cbreak(); // return to raw mode
 				timeout(1);
+				navDiv(window_info);
 				break;
 
 			case KEY_DOWN:
@@ -378,7 +382,7 @@ void navDiv(struct window_struct window_info)
 	}
 }
 
-// TO BE REPLACED WITH THE STATUS BAR WINDOW HANDLER
+
 void *statusDiv(void *arg)
 {
 	// DIVIDING LINE
@@ -459,6 +463,7 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
        * SHOW, DESCRIBE, etc.); just report rows-affected value.
        */
       //wprintw(arg, "Number of rows affected: %ld\n", (long) mysql_affected_rows (conn));
+	  wprintw(arg, "No records to display");
     }
     else  /* an error occurred */
     {
