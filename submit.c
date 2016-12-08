@@ -61,6 +61,7 @@ ITEM **my_items;
 MENU *my_menu;
 int k = 0;
 int c;
+int t;
 int task_repo_max = 5;
 int string_length = 50;
 int n_choices = 0;
@@ -195,25 +196,26 @@ int main()
 	navDiv(window_info);
 	actionHandler(window_info);
 	
-	// CREATE STATUS THREAD
-	res_line = pthread_create(&a_thread_line, NULL, statusDiv, (void *)status_window_ptr);
-	if (res_line != 0)
-	{
-		perror("Thread creation failed");
-		exit(EXIT_FAILURE); 
-	}
+	// // CREATE STATUS THREAD
+	// res_line = pthread_create(&a_thread_line, NULL, statusDiv, (void *)status_window_ptr);
+	// if (res_line != 0)
+	// {
+	// 	perror("Thread creation failed");
+	// 	exit(EXIT_FAILURE); 
+	// }
 
-	// JOIN STATUS THREAD TO MAIN
-	int res_join_line;
-	res_join_line = pthread_join(a_thread_line, &thread_result_line);
-	if (res_join_line != 0)
-	{
-		perror("Thread join failed");
-		exit(EXIT_FAILURE);
-	}
+	// // JOIN STATUS THREAD TO MAIN
+	// int res_join_line;
+	// res_join_line = pthread_join(a_thread_line, &thread_result_line);
+	// if (res_join_line != 0)
+	// {
+	// 	perror("Thread join failed");
+	// 	exit(EXIT_FAILURE);
+	// }
 
 	//sleep(3);
 	//unlink("my_pipe");
+	mysql_close(conn);
 	unpost_menu(my_menu);
 	free_menu(my_menu);
 	free(my_items);
@@ -230,6 +232,16 @@ void navDiv(struct window_struct window_info)
 
 	// CHECK IF MENU EXISTS
 	// IF IT DOES, FREE UP ALL ITEMS TO START OVER FRESH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	if (n_choices > 0)
+	{
+		for(t = 0; t < n_choices; ++t)
+		{
+			free_item(my_items[t]);
+		}
+		unpost_menu(my_menu);
+		free_menu(my_menu);
+		free(my_items);
+	}
 
 	WINDOW *left_window_ptr;
 	WINDOW *right_window_ptr;
@@ -388,24 +400,24 @@ void actionHandler(struct window_struct window_info)
 }
 
 
-void *statusDiv(void *arg)
-{
-	// DIVIDING LINE
-	pthread_mutex_lock(&ncurses);
-	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
-	wattron(arg, COLOR_PAIR(2));
-	char blueLine[COLS];
-	strcpy(blueLine," ");
-	for(z = 0; z < COLS-2; z++)
-	{
-		strcat(blueLine," ");
-	}
-	wprintw(arg,"test");
-	wprintw(arg,"%s",blueLine);
-	wrefresh(arg);
-	pthread_mutex_unlock(&ncurses);
-	pthread_exit(NULL);
-}
+// void *statusDiv(void *arg)
+// {
+// 	// DIVIDING LINE
+// 	pthread_mutex_lock(&ncurses);
+// 	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+// 	wattron(arg, COLOR_PAIR(2));
+// 	char blueLine[COLS];
+// 	strcpy(blueLine," ");
+// 	for(z = 0; z < COLS-2; z++)
+// 	{
+// 		strcat(blueLine," ");
+// 	}
+// 	wprintw(arg,"test");
+// 	wprintw(arg,"%s",blueLine);
+// 	wrefresh(arg);
+// 	pthread_mutex_unlock(&ncurses);
+// 	pthread_exit(NULL);
+// }
 
 void process_result_set (MYSQL *conn, MYSQL_RES *res_set, WINDOW *arg)
 {
