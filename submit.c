@@ -126,6 +126,44 @@ int main()
 	pthread_t a_thread_line;
 	void *thread_result_line;
 
+	// POPUP WINDOW
+	int fifth_height = LINES / 5;
+	int three_fifths_height = (LINES / 5) * 3;
+	int fifth_width = COLS / 5;
+	int three_fifths_width = (COLS / 5) * 3;
+	int three_fifths_width_middle = three_fifths_width / 2;
+	int middle_height = three_fifths_height / 2;
+	
+	int middle_welcome_y = middle_height - 3;
+	int middle_nav_y = middle_height - 2;
+	int middle_insert_y = middle_height - 1;
+	int middle_quit_y = middle_height - 0;
+
+	WINDOW *popup_window_ptr;
+	popup_window_ptr = newwin(three_fifths_height,three_fifths_width,fifth_height,fifth_width);
+	box(popup_window_ptr, '|', '-');
+	char welcome_string[] = "Welcome to TaskEngine";
+	char nav_string[] = "Press arrow keys to navigate taskrepos";
+	char insert_string[] = "Press 'n' to insert a new actionable";
+	//const char delete_string[] = "Press 'd' to delete an actionable";
+	char quit_string[] = "Press 'q' to quit";
+
+	int middle_welcome_x = three_fifths_width_middle - (sizeof(welcome_string) / 2);
+	int middle_nav_x = three_fifths_width_middle - (sizeof(nav_string) / 2);
+	int middle_insert_x = three_fifths_width_middle - (sizeof(insert_string) / 2);
+	//int middle_delete = three_fifths_width_middle - (sizeof(delete_string) / 2);
+	int middle_quit_x = three_fifths_width_middle - (sizeof(quit_string) / 2);
+
+	mvwprintw(popup_window_ptr, middle_welcome_y, middle_welcome_x, "%s", welcome_string);
+	mvwprintw(popup_window_ptr, middle_nav_y, middle_nav_x, "%s", nav_string);
+	mvwprintw(popup_window_ptr, middle_insert_y, middle_insert_x, "%s", insert_string);
+	//mvwprintw(popup_window_ptr, 4, middle_delete,"%s", delete_string);
+	mvwprintw(popup_window_ptr, middle_quit_y, middle_quit_x, "%s", quit_string);
+	box(popup_window_ptr, '|', '-');
+	wrefresh(popup_window_ptr);
+	sleep(6);
+	delwin(popup_window_ptr);
+
 	navDiv(window_info);
 	
 	// CREATE STATUS THREAD
