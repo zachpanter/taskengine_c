@@ -62,7 +62,7 @@ int my_num_rows = 0;
 void func(char *name);
 ITEM *cur;
 void (*p)(char *);
-
+ 
 int main()
 {
     // INITIALIZE DATABASE CONNECTION HANDLER
@@ -201,8 +201,8 @@ void navDiv(struct window_struct window_info)
 		set_menu_win(my_menu, left_window_ptr);
 		WINDOW *derp_win = derwin(left_window_ptr, main_height - 6, half_width - 6, 1, 1);
 		set_menu_sub(my_menu, derp_win);
-		wborder(derp_win, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
-		set_menu_format(my_menu, half_width - 10, main_height - 4);
+		//wborder(derp_win, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+		set_menu_format(my_menu, half_width - 30, main_height - 4);
 		set_menu_mark(my_menu, " * ");
 		post_menu(my_menu);
 		wrefresh(left_window_ptr);
@@ -213,9 +213,9 @@ void navDiv(struct window_struct window_info)
 
 
 
-		// LIST ACTIONABLES
-		wprintw(right_window_ptr,"\n");
-		process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
+		// // LIST ACTIONABLES
+		// wprintw(right_window_ptr,"\n");
+		// process_statement(conn, "SELECT actionable_title FROM actionable;", right_window_ptr);
 
 		// Draw Borders
 		wborder(left_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
@@ -234,9 +234,14 @@ void navDiv(struct window_struct window_info)
 			case KEY_DOWN:
 				menu_driver(my_menu, REQ_NEXT_ITEM);
 				break;
+			case KEY_RIGHT:
+				menu_driver(my_menu, REQ_NEXT_ITEM);
+				break;
 			case KEY_UP:
 				menu_driver(my_menu, REQ_PREV_ITEM);
 				break;
+			case KEY_LEFT:
+				menu_driver(my_menu, REQ_PREV_ITEM);
 			case KEY_NPAGE:
 				menu_driver(my_menu, REQ_SCR_DPAGE);
 				break;
@@ -321,6 +326,8 @@ process_statement (MYSQL *conn, char *stmt_str, WINDOW *arg)
   {
     /* process rows and free the result set */
     process_result_set (conn, res_set, arg);
+	wborder(right_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
+	wrefresh(right_window_ptr);
     mysql_free_result (res_set);
   }
   else              /* no result set was returned */
@@ -345,7 +352,22 @@ void func(char *name)
 	wmove(status_window_ptr, 1, 1);
 	wclrtoeol(status_window_ptr);
 	//mvprintw(20, 0, "Item selected is : %s", name);
-	wprintw(status_window_ptr," Item selected is : %s\n", name);
+	wprintw(status_window_ptr," Actionables shown for : %s\n", name);
 	wborder(status_window_ptr, '|','|','-','-','*','*','*','*'); //box(arg,'*','*');
 	wrefresh(status_window_ptr);
+
+	wprintw(right_window_ptr,"\n");
+
+	// PREPARE QUERY STRING
+	char query_string[200];
+	strcpy(query_string,"SELECT actionable.actionable_title FROM actionable JOIN taskrepo ON (actionable.taskrepo_id = taskrepo.taskrepo_id) WHERE taskrepo.taskrepo_name = '");
+	strcat(query_string, name);
+	strcat(query_string, "';");
+	//wprintw(right_window_ptr,"%s\n", query_string);
+	
+	// EXECUTE QUERY
+	wclear(right_window_ptr);
+	wmove(right_window_ptr, 1, 1);
+	process_statement(conn, query_string, right_window_ptr);
+	wrefresh(right_window_ptr);
 }
