@@ -70,7 +70,8 @@ void func(char *name);
 ITEM *cur;
 void (*p)(char *);
  
-int main()
+// breaking to check Travis
+//int main()
 {
     // INITIALIZE DATABASE CONNECTION HANDLER
     conn = mysql_init(NULL);
